@@ -93,7 +93,7 @@ int main(int argc, char *argv[]) {
     for (int i = 0; i < numClientes; i++) {
         need[i] = (int *)malloc(numRecursos * sizeof(int));
         for (int j = 0; j < numRecursos; j++) {
-            need[i][j] = 0;
+            need[i][j] = matrizClientesOriginal[i][j];
         }
     }
 
@@ -134,6 +134,7 @@ int main(int argc, char *argv[]) {
 
     if((numRecursosCommands - 1) != num_recursos){
         printf("Incompatibility between customer.txt and command line\n");
+        return 1;
     }
 
     FILE *result = fopen("result.txt", "w");
@@ -361,12 +362,13 @@ void alocarRecursos(FILE *outputFile, int **matrizClientes, int numClientes, int
 
     for (int i = 0; i < numRecursos; i++) {
 
-        if (request[i + 1] > matrizClientesOriginal[cliente][i]) {
+        if (request[i + 1] > need[cliente][i]) {
+
             fprintf(outputFile, "The customer %d request", cliente);
             for (int j = 0; j < numRecursos; j++) {
                 fprintf(outputFile, " %d", request[j + 1]);
             }
-            fprintf(outputFile, " was denied because it exceed its maximum need\n");
+            fprintf(outputFile, " was denied because exceed its maximum need\n");
             return;
         }
     }
@@ -403,7 +405,7 @@ void alocarRecursos(FILE *outputFile, int **matrizClientes, int numClientes, int
         for (int i = 0; i < numRecursos; i++) {
             fprintf(outputFile, " %d", request[i + 1]);
         }
-        fprintf(outputFile, "\n");
+        fprintf(outputFile, " \n");
     } 
     else {
 
@@ -412,7 +414,7 @@ void alocarRecursos(FILE *outputFile, int **matrizClientes, int numClientes, int
         for (int i = 0; i < numRecursos; i++) {
             fprintf(outputFile, " %d", request[i + 1]);
         }
-        fprintf(outputFile, " was denied because it would result in an unsafe state\n");
+        fprintf(outputFile, " was denied because result in an unsafe state\n");
         return;
     }
 
@@ -432,12 +434,12 @@ void liberarRecursos(FILE *outputFile, int **matrizClientes, int numClientes, in
     for (int i = 0; i < numRecursos; i++) {
 
         if (release[i + 1] > allocation[cliente][i]) {
-            fprintf(outputFile, "The customer %d release", cliente);
+            fprintf(outputFile, "The customer %d released", cliente);
 
             for (int j = 0; j < numRecursos; j++) {
                 fprintf(outputFile, " %d", release[j + 1]);
             }
-            fprintf(outputFile, " was denied because it exceed its maximum allocation\n");
+            fprintf(outputFile, " was denied because exceed its maximum allocation\n");
 
             return;
         }
@@ -453,7 +455,7 @@ void liberarRecursos(FILE *outputFile, int **matrizClientes, int numClientes, in
     for (int i = 0; i < numRecursos; i++) {
         fprintf(outputFile, " %d", release[i + 1]);
     }
-    fprintf(outputFile, "\n");
+    fprintf(outputFile, " \n");
 }
 
 
@@ -515,7 +517,7 @@ void mostrarEstado(FILE *outputFile, int numClientes, int numRecursos, int **mat
     for (int j = 0; j < numRecursos; j++) {
         fprintf(outputFile, " %d", available[j]);
     }
-    fprintf(outputFile, "\n");
+    fprintf(outputFile, " \n");
 }
 
 
