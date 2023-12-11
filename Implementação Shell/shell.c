@@ -564,6 +564,7 @@ void style_parallel(char **commands, int command_count) {
 
 
 void *execute_command(void *ptr) {
+
     char *command = (char *)ptr;
     char *args[BUFSIZ / 2 + 1];
     char *token = strtok(command, " ");
@@ -578,43 +579,40 @@ void *execute_command(void *ptr) {
     char *output_file = NULL;
 
     while (token != NULL) {
-      
+
         if (strcmp(token, "&") == 0) {
-          
+
             background = 1;
             break;
         } 
         else if (strcmp(token, "<") == 0) {
-          
+
             input_redirection = 1;
             token = strtok(NULL, " ");
-          
+
             if (token != NULL) {
-              
                 input_file = strdup(token);
             }
         } 
         else if (strcmp(token, ">") == 0) {
-          
+
             output_redirection = 1;
             token = strtok(NULL, " ");
-          
+
             if (token != NULL) {
-              
                 output_file = strdup(token);
             }
         } 
         else if (strcmp(token, ">>") == 0) {
-          
+
             output_redirection = 2;
             token = strtok(NULL, " ");
-          
+
             if (token != NULL) {
                 output_file = strdup(token);
             }
         } 
         else {
-          
             args[arg_count] = token;
             arg_count++;
         }
@@ -624,31 +622,72 @@ void *execute_command(void *ptr) {
 
     args[arg_count] = NULL;
 
-    pid_t pid = fork();
+    pid_t pid;
+    int status;
 
-    if (pid < 0) {
+    if (background == 1) {
+
+        printf("[%d] %d\n", process_order, getpid());
+        pid_array[process_order] = getpid();
+        process_order++;
+    }
+
+    if ((pid = fork()) < 0) {
+
         fprintf(stderr, "Fork failed");
         exit(1);
     } 
     else if (pid == 0) { // processo filho
+
+        if (input_redirection) {
+
+            int input_fd = open(input_file, O_RDONLY);
+
+            if (input_fd == -1) {
+
+                perror("Error when opening the input file.");
+                exit(1);
+            }
+
+            dup2(input_fd, STDIN_FILENO);
+            close(input_fd);
+        }
+
+        if (output_redirection) {
+
+            int output_fd;
+
+            if (output_redirection == 1) {
+
+                output_fd = open(output_file, O_WRONLY | O_CREAT | O_TRUNC, 0666);
+            } 
+            else { // output_redirection == 2
+
+                output_fd = open(output_file, O_WRONLY | O_CREAT | O_APPEND, 0666);
+            }
+            if (output_fd == -1) {
+                
+                perror("Error when opening the output file.");
+                exit(1);
+            }
+
+            dup2(output_fd, STDOUT_FILENO);
+            close(output_fd);
+        }
+
         execvp(args[0], args);
-        perror("Erro ao executar o comando");
+        perror("Error executing command");
         exit(1);
     } 
     else { // processo pai
-      
-        if (background == 1) {
-          
-            printf("[%d] %d\n", process_order, getpid()); // Exibe o PID do processo em segundo plano
-            pid_array[process_order] = getpid(); // Armazena o PID no array
-            process_order++;
-        } 
-        else {
-          
-            int status;
+
+        if (background != 1) {
             waitpid(pid, &status, 0);
         }
     }
+
+    free(input_file);
+    free(output_file);
 
     pthread_exit(NULL);
 }
