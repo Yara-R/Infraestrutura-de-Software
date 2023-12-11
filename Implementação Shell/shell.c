@@ -56,202 +56,164 @@ int main(int argc, char *argv[]) {
             FILE *batch_file = fopen(argv[1], "r");
 
             if (batch_file == NULL) {
-
                 perror("Error when opening the file.");
                 exit(1);
             }
 
-            if (fgets(input, sizeof(input), batch_file) == NULL) {
-                break;
-            }
-          
-            fgets(input, sizeof(input), batch_file);
-            input[strcspn(input, "\n")] = '\0';
-          
-            printf("Batch> %s\n", input);
-
             while (fgets(input, sizeof(input), batch_file) != NULL) {
 
-                fgets(input, sizeof(input), batch_file);
                 input[strcspn(input, "\n")] = '\0';
                 printf("Batch> %s\n", input);
-        
+
                 if (strcmp(input, "exit") == 0) {
-                  
+
                     exit(0);
                 }
-        
+
                 if (strcmp(input, "!!") == 0) {
-                          
+
                     if (history_index == 0) {
-                      
+
                         printf("No commands\n");
                         continue;
                     } 
-                  
+
                     char *last_command = history[(history_index - 1 + BUFSIZ) % BUFSIZ];
                     printf("yri seq> %s\n", last_command);
                     style_sequential(&last_command, 1);
-                }
 
-                if (strncmp(input, "fg", 2) == 0) {
-                    
+                } 
+                else if (strncmp(input, "fg", 2) == 0) {
+
                     int pos;
                     sscanf(input + 3, "%d", &pos);
-                  
+
                     if (pos > 0 && pos < process_order) {
-                      
                         trazer_foreground(pid_array[pos]);
                     } 
                     else {
-                      
                         printf("Invalid position in the pid_array.\n");
                     }
-                  
-                }
-                              
-              
-                if (strcmp(input, "style parallel") == 0) { // Modo paralelo
-                  
-                    while(1){
-    
-                        fgets(input, sizeof(input), batch_file);
+
+                } 
+                else if (strcmp(input, "style parallel") == 0) { // Modo paralelo
+
+                    while (fgets(input, sizeof(input), batch_file) != NULL) {
+
                         input[strcspn(input, "\n")] = '\0';
                         printf("Batch> %s\n", input);
-                      
+
                         if (strcmp(input, "exit") == 0) {
-                          
                             exit(0);
-                        }
-                      
+                        }  // Exit
+
+                        input[strcspn(input, "\n")] = '\0';
+
                         if (strcmp(input, "style sequential") == 0) {
                             break;
                         }
-                      
+
                         if (strcmp(input, "!!") == 0) {
-                          
                             if (history_index == 0) {
-                              
                                 printf("No commands\n");
                                 continue;
                             } 
-                          
-                            char *last_command = history[(history_index - 1 + BUFSIZ) % BUFSIZ];
-                            printf("yri seq> %s\n", last_command);
-                            style_parallel(&last_command, 1);
-                        }
 
-                        if (strncmp(input, "fg", 2) == 0) {
-                    
+                            char *last_command = history[(history_index - 1 + BUFSIZ) % BUFSIZ];
+                            printf("yri par> %s\n", last_command);
+                            style_parallel(&last_command, 1);
+                        } 
+                        else if (strncmp(input, "fg", 2) == 0) {
                             int pos;
                             sscanf(input + 3, "%d", &pos);
-                          
+
                             if (pos > 0 && pos < process_order) {
-                              
                                 trazer_foreground(pid_array[pos]);
                             } 
                             else {
-                              
                                 printf("Invalid position in the pid_array.\n");
                             }
-                          
-                        }
-
-                      
-                        int eh_pipe = 0;
-                        int i = 0;
-                      
-                        while (input[i] != '\0') {
-                          
-                            if (input[i] == '|') {
-                              
-                                eh_pipe = 1;
-                                break;
-                            }
-                            i++;
-                        }
-        
-                        if (eh_pipe) {
-                          
-                            char **pipe_commands;
-                            int pipe_command_count = separar_comandos_pipe(input, &pipe_commands);
-
-        
-                            suporte_pipe(pipe_commands, pipe_command_count);
-        
-                            for (int j = 0; j < pipe_command_count; j++) {
-                              
-                                free(pipe_commands[j]);
-                            }
-        
-                            free(pipe_commands);
                         } 
                         else {
-                            
-                            char **commands;
-                            int command_count = separar_comandos(input, &commands);
 
-                          
-                            style_parallel(commands, command_count);
-        
-                            for (int i = 0; i < command_count; i++) {
-                                free(commands[i]);
+                            int eh_pipe = 0;
+                            int i = 0;
+
+                            while (input[i] != '\0') {
+                                if (input[i] == '|') {
+                                    eh_pipe = 1;
+                                    break;
+                                }
+                                i++;
                             }
-        
-                            free(commands);
+
+                            if (eh_pipe) {
+
+                                char **pipe_commands;
+                                int pipe_command_count = separar_comandos_pipe(input, &pipe_commands);
+                                suporte_pipe(pipe_commands, pipe_command_count);
+
+                                for (int j = 0; j < pipe_command_count; j++) {
+                                    free(pipe_commands[j]);
+                                }
+                                free(pipe_commands);
+
+                            } 
+                            else {
+
+                                char **commands;
+                                int command_count = separar_comandos(input, &commands);
+                                style_parallel(commands, command_count);
+
+                                for (int i = 0; i < command_count; i++) {
+                                    free(commands[i]);
+                                }
+                                free(commands);
+                            }
                         }
-    
                     }
-                      
-                }  // Modo paralelo
-    
-                  
-                int eh_pipe = 0;
-                int i = 0;
-              
-                while (input[i] != '\0') {
-                  
-                    if (input[i] == '|') {
-                      
-                        eh_pipe = 1;
-                        break;
-                    }
-                    i++;
-                }
-
-                if (eh_pipe) {
-                  
-                    char **pipe_commands;
-                    int pipe_command_count = separar_comandos_pipe(input, &pipe_commands);
-
-                    suporte_pipe(pipe_commands, pipe_command_count);
-
-                    for (int j = 0; j < pipe_command_count; j++) {
-                      
-                        free(pipe_commands[j]);
-                    }
-
-                    free(pipe_commands);
                 } 
                 else {
-                    
-                    char **commands;
-                    int command_count = separar_comandos(input, &commands);
+                    int eh_pipe = 0;
+                    int i = 0;
 
-                    style_sequential(commands, command_count);
-
-                    for (int i = 0; i < command_count; i++) {
-                        free(commands[i]);
+                    while (input[i] != '\0') {
+                        if (input[i] == '|') {
+                            eh_pipe = 1;
+                            break;
+                        }
+                        i++;
                     }
 
-                    free(commands);
+                    if (eh_pipe) {
+
+                        char **pipe_commands;
+                        int pipe_command_count = separar_comandos_pipe(input, &pipe_commands);
+                        suporte_pipe(pipe_commands, pipe_command_count);
+
+                        for (int j = 0; j < pipe_command_count; j++) {
+                            free(pipe_commands[j]);
+                        }
+                        free(pipe_commands);
+                    } 
+                    else {
+
+                        char **commands;
+                        int command_count = separar_comandos(input, &commands);
+                        style_sequential(commands, command_count);
+
+                        for (int i = 0; i < command_count; i++) {
+                            free(commands[i]);
+                        }
+                        free(commands);
+                    }
                 }
             }
 
             fclose(batch_file);
             break;
-        } 
-          
+        }
+   
         else { // Modo interativo
 
             while (1) {
@@ -271,184 +233,115 @@ int main(int argc, char *argv[]) {
                 }
 
                 if (strcmp(input, "!!") == 0) {
-                          
                     if (history_index == 0) {
-                      
                         printf("No commands\n");
                         continue;
-                    } 
-                  
+                    }
+
                     char *last_command = history[(history_index - 1 + BUFSIZ) % BUFSIZ];
                     printf("yri seq> %s\n", last_command);
                     style_sequential(&last_command, 1);
-                }
 
-                if (strncmp(input, "fg", 2) == 0) {
-                    
+                } 
+                else if (strncmp(input, "fg", 2) == 0) {
+
                     int pos;
                     sscanf(input + 3, "%d", &pos);
-                  
+
                     if (pos > 0 && pos < process_order) {
                         trazer_foreground(pid_array[pos]);
-                    } else {
+                    } 
+                    else {
                         printf("Invalid position in the pid_array.\n");
                     }
-                    
-                }
-                              
-              
-                if (strcmp(input, "style parallel") == 0) { // Modo paralelo
-                  
-                    while(1){
-                  
+
+                } 
+                else if (strcmp(input, "style parallel") == 0) { // Modo paralelo
+
+                    while (1) {
+
                         printf("yri par> ");
                         fflush(stdout);
-    
+
                         fgets(input, sizeof(input), stdin);
                         input[strcspn(input, "\n")] = '\0';
-    
-                        if (strcmp(input, "exit") == 0) {
 
+                        if (strcmp(input, "exit") == 0) {
                             exit(0);
                         }  // Exit
-    
+
                         if (feof(stdin)) {
-                          
                             exit(0);
                         }  // ctrl+d
-    
+
                         if (strcmp(input, "style sequential") == 0) {
-                          
                             break;
                         }
 
                         if (strcmp(input, "!!") == 0) {
-                          
                             if (history_index == 0) {
-                              
                                 printf("No commands\n");
                                 continue;
-                            } 
-                          
+                            }
+
                             char *last_command = history[(history_index - 1 + BUFSIZ) % BUFSIZ];
                             printf("yri seq> %s\n", last_command);
                             style_parallel(&last_command, 1);
-                        }
 
-                        if (strncmp(input, "fg", 2) == 0) {
-                    
-                            int pos;
-                            sscanf(input + 3, "%d", &pos);
-                          
-                            if (pos > 0 && pos < process_order) {
-                              
-                                trazer_foreground(pid_array[pos]);
+                        } 
+                        else {
+
+                            int eh_pipe = 0;
+                            int i = 0;
+
+                            while (input[i] != '\0') {
+                                if (input[i] == '|' || input[i] == ';') {
+                                    eh_pipe = 1;
+                                    break;
+                                }
+                                i++;
+                            }
+
+                            if (eh_pipe) {
+
+                                char **commands;
+                                int command_count = separar_comandos(input, &commands);
+                                style_parallel(commands, command_count);
+
+                                for (int i = 0; i < command_count; i++) {
+                                    free(commands[i]);
+                                }
+                                free(commands);
                             } 
                             else {
-                                printf("Invalid position in the pid_array.\n");
+
+                                char **commands;
+                                int command_count = separar_comandos(input, &commands);
+                                style_sequential(commands, command_count);
+
+                                for (int i = 0; i < command_count; i++) {
+                                    free(commands[i]);
+                                }
+                                free(commands);
                             }
-                          
                         }
- 
-                        int eh_pipe = 0;
-                        int normal = 0;
-                        int i = 0;
-                      
-                        while (input[i] != '\0') {
-                          
-                            if (input[i] == '|') {
-                              
-                                eh_pipe = 1;
-                            }
-                            else if (input[i] == ';') {
-                              
-                                normal = 1;
-                            }
-                            i++;
-                        }
-        
-                        if (eh_pipe) {
-                          
-                            char **pipe_commands;
-                            int pipe_command_count = separar_comandos_pipe(input, &pipe_commands);
-        
-                            suporte_pipe(pipe_commands, pipe_command_count);
-        
-                            for (int j = 0; j < pipe_command_count; j++) {
-                              
-                                free(pipe_commands[j]);
-                            }
-        
-                            free(pipe_commands);
-                            
-                        } 
-                        else if (normal){
-                            
-                            char **commands;
-                            int command_count = separar_comandos(input, &commands);
-                          
-                            style_parallel(commands, command_count);
-        
-                            for (int i = 0; i < command_count; i++) {
-                                free(commands[i]);
-                            }
-        
-                            free(commands);
-                        }
-    
                     }
-                      
-                }  // Modo paralelo
-    
-                  
-                int eh_pipe = 0;
-                int normal = 0;
-                int i = 0;
-              
-                while (input[i] != '\0') {
-                  
-                    if (input[i] == '|') {
-                      
-                        eh_pipe = 1;
-                        //break;
-                    }
-                    else if (input[i] == ';') {
-                              
-                        normal = 1;
-                        //break;
-                    }
-                    i++;
-                }
-
-                if (eh_pipe) {
-                  
-                    char **pipe_commands;
-                    int pipe_command_count = separar_comandos_pipe(input, &pipe_commands);
-
-                    suporte_pipe(pipe_commands, pipe_command_count);
-
-                    for (int j = 0; j < pipe_command_count; j++) {
-                      
-                        free(pipe_commands[j]);
-                    }
-
-                    free(pipe_commands);
                 } 
-                else if (normal){
-                    
+                else {
+                    // Modo sequencial para um único comando
                     char **commands;
                     int command_count = separar_comandos(input, &commands);
-
                     style_sequential(commands, command_count);
 
                     for (int i = 0; i < command_count; i++) {
                         free(commands[i]);
                     }
-
                     free(commands);
                 }
             }
         }
+
+
     }
     
     return 0;
